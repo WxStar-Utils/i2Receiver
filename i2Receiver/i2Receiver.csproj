@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ApplicationIcon>213566122.ico</ApplicationIcon>
+    <AssemblyName>i2Receiver</AssemblyName>
+    <RootNamespace>i2Receiver</RootNamespace>
+    <Company>wxstar.dev</Company>
+    <Product>i2Receiver</Product>
+    <NeutralLanguage>en-US</NeutralLanguage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MQTTnet" Version="4.3.7.1207" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Pastel" Version="5.2.1" />
+    <PackageReference Include="StarAPI.NET" Version="1.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TWC.I2.MsgEncode\TWC.I2.MsgEncode.csproj" />
+    <ProjectReference Include="..\TWC.Msg\TWC.Msg.csproj" />
+    <ProjectReference Include="..\TWC.SE.StarBundle\TWC.SE.StarBundle.csproj" />
+    <ProjectReference Include="..\TWC.Util\TWC.Util.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Data\LFRecord.db">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
