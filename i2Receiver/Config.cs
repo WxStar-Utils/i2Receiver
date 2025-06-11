@@ -46,6 +46,7 @@ public class Config
     {
         [XmlElement] public string MsgAddress { get; set; } = "224.1.1.77";
         [XmlElement] public string IfAddress { get; set; } = "127.0.0.1";
+        [XmlElement] public bool ProcessCues { get; set; } = true;
         [XmlElement] public int RoutineMsgPort { get; set; } = 7787;
         [XmlElement] public int PriorityMsgPort { get; set; } = 7788;
 

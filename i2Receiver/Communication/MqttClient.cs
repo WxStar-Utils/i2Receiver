@@ -55,7 +55,7 @@ namespace i2Receiver.Communication
                         e.ApplicationMessage.Topic == "wxstar/heartbeat")
                         await I2MsgHandler(payloadMessage, e.ApplicationMessage.Topic);
 
-                    if (e.ApplicationMessage.Topic == "wxstar/cues")
+                    if (e.ApplicationMessage.Topic == "wxstar/cues" && Config.config.UnitConfig.ProcessCues)
                         await CueHandler(payloadMessage);
                 };
 
