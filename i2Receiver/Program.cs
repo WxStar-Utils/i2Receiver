@@ -11,6 +11,10 @@ namespace i2Receiver
             Config config = Config.Load();
             Log.SetLogLevel(Config.config.LogLevel);
 
+            // Create the temp directory if it does not exist 
+            if (!Directory.Exists("temp"))
+                Directory.CreateDirectory("temp");
+            
             await StarApi.CheckStarAuthorization();
             
             var client = new MqttClient();
