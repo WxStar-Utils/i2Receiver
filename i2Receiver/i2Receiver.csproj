@@ -11,6 +11,7 @@
     <Company>wxstar.dev</Company>
     <Product>i2Receiver</Product>
     <NeutralLanguage>en-US</NeutralLanguage>
+    <PublishSingleFile>true</PublishSingleFile>
   </PropertyGroup>
 
   <ItemGroup>
