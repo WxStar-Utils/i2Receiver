@@ -7,7 +7,7 @@ namespace i2Receiver
     {
         static async Task Main(string[] args)
         {
-            Console.Title = "WxStar Utils | IntelliStar 2 Data Receiver - Init..";
+            Console.Title = "wxstar.dev | IntelliStar 2 Data Receiver - Init..";
             Config config = Config.Load();
             Log.SetLogLevel(Config.config.LogLevel);
 
