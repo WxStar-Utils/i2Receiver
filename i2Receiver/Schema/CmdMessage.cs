@@ -25,4 +25,11 @@ namespace i2Receiver.Schema
         [JsonProperty("duration")] public int Duration { get; set; } = 3600;
         [JsonProperty("flavor")] public string Flavor { get; set; } = string.Empty;
     }
+
+    public class RadarFrame
+    {
+        [JsonProperty("data")] public string FrameData { get; set; } = string.Empty;
+        [JsonProperty("timestamp")] public int Timestamp { get; set; } = 0;
+        [JsonProperty("filename")] public string Filename { get; set; } = string.Empty;
+    }
 }
