@@ -5,12 +5,14 @@ using MQTTnet.Client;
 using Newtonsoft.Json;
 using System.Xml.Linq;
 using i2Receiver.Schema;
+using MQTTnet.Exceptions;
 
 namespace i2Receiver.Communication
 {
     public class MqttClient
     {
         private string tempDir = Path.Combine(AppContext.BaseDirectory, "temp");
+        private bool _disconnected = false;
         
         private UDPSender routineSender = new UDPSender(
             Config.config.UnitConfig.MsgAddress,
@@ -43,6 +45,29 @@ namespace i2Receiver.Communication
                     .WithCleanSession()
                     //.WithTls()  // The MQTT broker should be running as https
                     .Build();
+                
+                // Switch subscribed channels based off of what's set in the configuration file
+                MqttClientSubscribeOptionsBuilder subscribeOptionsBuilder = new();
+                MqttClientSubscribeOptions subscribeOptions = new();
+
+                if (Config.config.PullNationalData)
+                {
+                    subscribeOptions = subscribeOptionsBuilder
+                        .WithTopicFilter("wxstar/data/national/i2")
+                        .WithTopicFilter("wxstar/data/i2/priority")
+                        .WithTopicFilter("wxstar/heartbeat")
+                        .Build();
+                }
+                else
+                {
+                    subscribeOptions = subscribeOptionsBuilder
+                        .WithTopicFilter("wxstar/data/i2")
+                        .WithTopicFilter("wxstar/data/i2/priority")
+                        .WithTopicFilter("wxstar/data/i2/radar")
+                        .WithTopicFilter("wxstar/heartbeat")
+                        .WithTopicFilter("wxstar/cues")
+                        .Build();
+                }
 
                 mqttClient.ApplicationMessageReceivedAsync += async e =>
                 {
@@ -63,37 +88,48 @@ namespace i2Receiver.Communication
                         await CueHandler(payloadMessage);
                 };
 
-
-                // Switch subscribed channels based off of what's set in the configuration file
-                MqttClientSubscribeOptionsBuilder optionsBuilder = new();
-                MqttClientSubscribeOptions options = new();
-
-                if (Config.config.PullNationalData)
+                mqttClient.DisconnectedAsync += async e =>
                 {
-                    options = optionsBuilder
-                        .WithTopicFilter("wxstar/data/national/i2")
-                        .WithTopicFilter("wxstar/data/i2/priority")
-                        .WithTopicFilter("wxstar/heartbeat")
-                        .Build();
-                }
-                else
-                {
-                    options = optionsBuilder
-                        .WithTopicFilter("wxstar/data/i2")
-                        .WithTopicFilter("wxstar/data/i2/priority")
-                        .WithTopicFilter("wxstar/data/i2/radar")
-                        .WithTopicFilter("wxstar/heartbeat")
-                        .WithTopicFilter("wxstar/cues")
-                        .Build();
-                }
-
+                    _disconnected = true;
+                    Log.Warning("Lost connection to the MQTT Broker. Attempting to re-establish connection.");
+                    Console.Title = "wxstar.dev | IntelliStar 2 Data Receiver - No connection.";
+                    
+                    while (_disconnected)
+                    {
+                        Log.Debug("DISCONNECTED");
+                        await Task.Delay(1000);
+                        try
+                        {
+                            await mqttClient.ConnectAsync(mqttClientOptions, CancellationToken.None);
+                            await mqttClient.SubscribeAsync(subscribeOptions, CancellationToken.None);
+                            
+                            Log.Info("Reconnected!");
+                            
+                            Console.Title = $"wxstar.dev | IntelliStar 2 Data Receiver - Connected to {_host}";
+                            
+                            _disconnected = false;
+                        }
+                        catch (MqttClientNotConnectedException)
+                        {
+                            Log.Warning("Failed to reconnect to the broker, trying again in 1 second..");
+                        }
+                        catch (TimeoutException)
+                        {
+                            Log.Warning("Connection timed out, attempting to reconnect to the server..");
+                        }
+                        catch (MqttCommunicationException)
+                        {
+                            Log.Error("Unable to connect to the remote server. Attempting to reconnect in 1 second.");
+                        }
+                    }
+                };
 
                 await mqttClient.ConnectAsync(mqttClientOptions, CancellationToken.None);
 
                 Log.Info($"Connected to MQTT broker @ {_host}");
-                Console.Title = $"WxStar Utils | IntelliStar 2 Data Receiver - Connected to {_host}";
+                Console.Title = $"wxstar.dev | IntelliStar 2 Data Receiver - Connected to {_host}";
 
-                await mqttClient.SubscribeAsync(options, CancellationToken.None);
+                await mqttClient.SubscribeAsync(subscribeOptions, CancellationToken.None);
 
                 Console.ReadLine();
             }
