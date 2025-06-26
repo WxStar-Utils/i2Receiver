@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.IO.Compression;
+using System.Text;
 using MQTTnet;
 using MQTTnet.Client;
 using Newtonsoft.Json;
@@ -55,6 +56,9 @@ namespace i2Receiver.Communication
                         e.ApplicationMessage.Topic == "wxstar/heartbeat")
                         await I2MsgHandler(payloadMessage, e.ApplicationMessage.Topic);
 
+                    if (e.ApplicationMessage.Topic == "wxstar/data/i2/radar")
+                        await RadarFrameHandler(payloadMessage);
+
                     if (e.ApplicationMessage.Topic == "wxstar/cues" && Config.config.UnitConfig.ProcessCues)
                         await CueHandler(payloadMessage);
                 };
@@ -77,6 +81,7 @@ namespace i2Receiver.Communication
                     options = optionsBuilder
                         .WithTopicFilter("wxstar/data/i2")
                         .WithTopicFilter("wxstar/data/i2/priority")
+                        .WithTopicFilter("wxstar/data/i2/radar")
                         .WithTopicFilter("wxstar/heartbeat")
                         .WithTopicFilter("wxstar/cues")
                         .Build();
@@ -169,6 +174,46 @@ namespace i2Receiver.Communication
                 routineSender.SendCommand($"loadPres(PresentationId={command.CueId},Flavor={cue.Flavor},Duration={cue.Duration},VideoBehind=000)");
                 return;
             }
+        }
+
+        public async Task RadarFrameHandler(string payload)
+        {
+            RadarFrame? frameInfo = JsonConvert.DeserializeObject<RadarFrame>(payload);
+
+            if (frameInfo == null)
+            {
+                Log.Warning("Failed to deserialize radar frame data.");
+                return;
+            }
+
+            if (!Directory.Exists("temp/frames"))
+                Directory.CreateDirectory("temp/frames");
+            
+            // Create gzip file from the base64 frame data
+            var base64EncodedBytes = Convert.FromBase64String(frameInfo.FrameData);
+
+            await File.WriteAllBytesAsync($"temp/frames/{frameInfo.Filename}.gz", base64EncodedBytes);
+            
+            // Decompress the gzip archive back down to the base .tiff file
+            using (FileStream compressedFrame = File.OpenRead($"temp/frames/{frameInfo.Filename}.gz"))
+            {
+                using (FileStream decompressedFrame = File.Create($"temp/frames/{frameInfo.Filename}"))
+                {
+
+                    using (GZipStream decompressionStream = new GZipStream(compressedFrame, CompressionMode.Decompress))
+                    {
+                        await decompressionStream.CopyToAsync(decompressedFrame);
+                    }
+                }
+            }
+            Log.Info($"Processed new radar frame for timestamp {frameInfo.Timestamp}");
+
+            File.Delete($"temp/frames/{frameInfo.Filename}.gz");
+            
+            prioritySender.SendFile($"temp/frames/{frameInfo.Filename}",
+                $"storePriorityImage(FileExtension=.tiff,Location=US,ImagesType=Radar,IssueTime='{frameInfo.Timestamp}')");
+            
+            File.Delete($"temp/frames/{frameInfo.Filename}");
         }
 
         
